@@ -34,13 +34,17 @@ app.add_url_rule('/post_daily3', 'post_daily3', view_func=views.post_daily3, met
 app.add_url_rule('/logout', 'logout', view_func=views.logout)
 
 # Design testing
-app.add_url_rule('/beta/<version>', 'home_a', view_func=views.home)
-app.add_url_rule('/u/<username>/beta/<version>', 'user_profile_a', view_func=views.user_profile)
-app.add_url_rule('/me/beta/<version>', 'me_a', view_func=views.me)
-app.add_url_rule('/post_daily3/beta/<version>', 'post_daily3_a', view_func=views.post_daily3, methods=['POST'])
+app.add_url_rule('/bet/<version>', 'home_a', view_func=views.home)
+app.add_url_rule('/u/<username>/bet/<version>', 'user_profile_a', view_func=views.user_profile)
+app.add_url_rule('/me/bet/<version>', 'me_a', view_func=views.me)
+app.add_url_rule('/post_daily3/bet/<version>', 'post_daily3_a', view_func=views.post_daily3, methods=['POST'])
+app.add_url_rule('/logout/bet/<version>', 'logout_a', view_func=views.logout)
 
 #Favorites
 app.add_url_rule('/favorite/<post_id>', 'favorite', view_func=views.favorite)
+app.add_url_rule('/favorites', 'favorites', view_func=views.favorites)
+
+app.add_url_rule('/beta-off', 'beta_off', view_func=views.beta_off)
 
 
 # Say hello

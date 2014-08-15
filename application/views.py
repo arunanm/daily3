@@ -139,6 +139,12 @@ def load_user():
     g.user_post = user_post
     g.login_url = login_url
     g.ga_id = app.config['GA_ID']
+    
+    try:
+        if session['beta']:
+            g.beta = session['beta']
+    except KeyError:
+        pass
         
 
 def home(version="default"):
@@ -146,6 +152,8 @@ def home(version="default"):
     if version=="default":
         return render_template('index.html', posts=posts)
     elif version=="a":
+        session['beta'] = True
+        g.beta = True
         if g.user:
             for post in posts:
                 post.faved = True if Favorite.query(Favorite.user==g.user.key,Favorite.post==post.key).get() else False
@@ -165,7 +173,14 @@ def authorize():
         return redirect(url_for('home'))
     else:
         reddit = get_reddit()
-        access_info = reddit.get_access_information(code)
+        try:
+            access_info = reddit.get_access_information(code)
+        except:
+            logging.error("E201: Unknown exception while authenticating user %s" % g.user.username)
+            logging.error(sys.exc_info())
+            flash("Unknown error authenticating with reddit. Please try after some time.", 'error')
+            return redirect(url_for('home'))
+            
         praw_user = reddit.get_me()
         user = User.get_by_id(praw_user.name)
         if not user:
@@ -178,7 +193,14 @@ def authorize():
         user.refresh_token = access_info['refresh_token']
         user.put()
         session['user'] = user.username
-        return redirect(url_for('home'))
+        try: 
+            if session['beta']:
+                g.beta = True
+                return redirect(url_for('home_a', version='a'))
+            else:
+                return redirect(url_for('home'))
+        except:
+            return redirect(url_for('home'))
         
 def user_profile(username,version="default"):
     posts = None
@@ -195,6 +217,18 @@ def user_profile(username,version="default"):
             return render_template('user_profile_a.html', profile=profile, posts=posts)
     else:
         abort(404)
+        
+def favorites(version="default"):
+    posts=None
+    if g.user:
+        posts=ndb.get_multi(Favorite.query(Favorite.user==g.user.key).map(lambda f: f.post))
+        for post in posts:
+            post.faved = True
+        return render_template('favorites_a.html', posts=posts)
+    else:
+        return redirect(url_for('home'))
+            
+        
 
 def me(version="default"):
     posts = None
@@ -204,6 +238,9 @@ def me(version="default"):
         if version=="default":
             return render_template('user_profile.html', profile=profile, posts=posts)
         elif version=="a":
+            if g.user:
+                for post in posts:
+                    post.faved = True if Favorite.query(Favorite.user==g.user.key,Favorite.post==post.key).get() else False
             return render_template('user_profile_a.html', profile=profile, posts=posts)
     else:
         return redirect(url_for('home'))
@@ -244,10 +281,17 @@ def favorite(post_id):
                 post=ndb.Key(urlsafe=post_id)
         )
         f.put()
-        return 'Faved!'        
+        return 'Faved!'
 
-def logout():
+def logout(version="default"):
     session.pop('user', None)
+    if version=="default":
+        return redirect(url_for('home'))
+    elif version=="a":
+        return redirect(url_for('home_a', version='a'))
+
+def beta_off():
+    session.pop('beta', None)
     return redirect(url_for('home'))
     
 def say_hello(username):
